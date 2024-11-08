@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="egovframework.saa.module.student.service.impl.StudentMapper">
+
+	<sql id="pageBefore">
+		SELECT * FROM
+		(SELECT RN.*, ROWNUM AS RNUM, COUNT(*) OVER()
+		AS TOTCNT FROM(
+	</sql>
+	<sql id="pageAfter">
+		) RN
+		) WHERE RNUM &gt; #{firstIndex} AND RNUM &lt;=
+		#{lastIndex}
+	</sql>
+
+
+	<select id="selectStudentList" resultType="egovMap">
+		/*selectStudentList*/
+		<include refid="pageBefore" />
+		SELECT
+		*
+		FROM (
+		SELECT
+		student_id
+		,student_name
+		,CASE
+		WHEN state = 'A' THEN '재학'
+		WHEN state = 'B' THEN '전학'
+		WHEN state = 'C' THEN '자퇴'
+		WHEN state = 'D' THEN '유급' END AS state
+		,entrance
+		,graduation
+		,leave_year
+		,expelled_year
+		,student_sex
+		,student_department
+		,student_grade
+		,student_class
+		,student_number
+		FROM saa_student_register a
+		WHERE 1=1
+		<if
+			test="schFld != '' and schFld != null and schStr != '' and schStr != null">
+			<choose>
+				<when test="schFld == 'name'">
+					AND INSTR(student_name, #{schStr}) > 0
+				</when>
+				<when test="schFld == 'dept'">
+					AND student_department LIKE '%' || #{schStr} || '%'
+				</when>
+				<otherwise>
+					AND (
+					INSTR(student_name, #{schStr}) > 0
+					OR
+					INSTR(student_department, #{schStr}) > 0
+					)
+				</otherwise>
+			</choose>
+		</if>
+		ORDER BY 1 ,a.student_grade DESC, a.student_class, a.student_name
+		) t
+		<include refid="pageAfter" />
+	</select>
+
+	<insert id="insertStudent">
+		INSERT INTO saa_student_register (
+		student_id
+		,student_name
+		, state
+		, entrance
+		, graduation
+		, leave_year
+		, expelled_year
+		,student_sex
+		, student_grade
+		,student_department
+		, student_class
+		, student_number
+		)
+		VALUES (
+		#{studentId}
+		, #{studentName}
+		, #{state}
+		, #{entrance}
+		, #{graduation}
+		, #{leaveYear}
+		, #{expelledYear}
+		, #{studentSex}
+		, #{studentGrade}
+		, #{studentDepartment}
+		, #{studentClass}
+		, #{studentNumber}
+		)
+	</insert>
+
+	<select id="selectStudentView" resultType="egovMap">
+
+		SELECT * FROM
+		saa_student_information a, saa_student_register b WHERE a.student_id =
+		b.student_id AND a.student_id = #{studentId}
+	</select>
+
+	<select id="countStudents" resultType="int">
+		SELECT COUNT(*) FROM
+		saa_student_register
+	</select>
+
+	<select id="selectStudentScore" resultType="egovMap">
+		SELECT
+			ssi.scores_id
+			, ssi.score_year
+			, ssi.student_id
+			, ssi.semester
+			, ssi.scores
+			, ssi.subject_id
+			, CASE
+				WHEN ssi.score_divion = 'M' THEN '중간'
+				WHEN ssi.score_divion = 'F' THEN '기말'
+				END AS score_divion
+			, ROUND(SUM(ssi.scores) OVER (PARTITION BY ssi.student_id, ssi.score_year, ssi.semester, ssi.score_divion), 1) AS total_score
+			, ROUND(AVG(ssi.scores) OVER (PARTITION BY ssi.student_id, ssi.score_year, ssi.semester, ssi.score_divion), 1) AS average
+		FROM
+			saa_student_scores_information ssi
+		JOIN
+			saa_student_subject_information ss
+		ON
+			ssi.subject_id = ss.subject_id
+		WHERE
+			ssi.student_id = #{studentId}
+		AND
+			ss.student_grade = #{studentGrade}
+		ORDER BY
+			ssi.student_id
+			, ssi.score_year
+			, ssi.semester
+			, score_divion DESC;
+
+	</select>
+
+
+	<update id="updateStudentView">
+		UPDATE
+		saa_student_information
+		SET
+		student_name = #{studentName}
+		, phone_number = #{phoneNumber}
+		, resident_registration_number = #{residentRegistrationNumber}
+		, address = #{address}
+		, birth_date = #{birthDate}
+		, emergency_phone_number = #{emergencyPhoneNumber}
+		WHERE
+		student_id = #{studentId};
+		UPDATE
+		saa_student_register
+		SET
+		student_name = #{studentName}
+		WHERE
+		student_id = #{studentId};
+	</update>
+	<delete id="deleteStudent">
+		delete
+		from
+		saa_student_register WHERE student_id = #{studentId};
+	</delete>
+	<select id="selectStudentSubject" resultType="egovMap">
+		SELECT
+		subject_id,subject_name, student_grade
+		FROM
+		saa_student_subject_information
+		WHERE
+		student_grade = #{studentGrade}
+		ORDER BY
+		subject_id
+		;
+	</select>
+
+	<insert id="insertScore">
+		INSERT INTO saa_student_scores_information (
+		scores_id
+		,student_id
+		,score_year
+		,semester
+		,score_divion
+		,subject_id
+		,scores
+		)
+		VALUES (
+		#{scoresId}
+		,#{studentId}
+		,#{scoreYear}
+		,#{semester}
+		,#{scoreDivion}
+		,#{subjectId}
+		,#{score}
+		);
+	</insert>
+
+
+	<select id="countScore" resultType="int">
+		SELECT COUNT(*) FROM
+		saa_student_scores_information;
+	</select>
+
+	<update id="updateScore">
+		UPDATE saa_student_scores_information
+		SET scores =
+		#{score}
+		WHERE scores_id = #{scoreId};
+	</update>
+
+	<select id="selectStudentScore3" resultType="egovMap">
+		SELECT
+		a.scores_id
+		,a.student_id
+		,a.score_year
+		,a.semester
+		,a.scores
+		,CASE
+		WHEN a.score_divion = 'M' THEN '중간'
+		WHEN a.score_divion = 'F' THEN '기말'
+		END as score_divion
+		,a.subject_id
+		FROM
+		saa_student_scores_information a
+		,saa_student_subject_information b
+		WHERE
+		a.subject_id = b.subject_id
+		AND a.student_id = #{studentId}
+		AND b.student_grade =#{studentGrade}
+		AND a.semester = #{semester}
+		AND a.score_divion =#{scoreDivion}
+		ORDER BY
+		a.semester, a.subject_id, score_divion DESC;
+
+	</select>
+	<insert id="insertStudentView">
+		insert into saa_student_information(
+		student_id
+		,student_name
+		,phone_number
+		,resident_registration_number
+		,address
+		,birth_date
+		,emergency_phone_number
+		)
+		values(
+		#{studentId}
+		,#{studentName}
+		,#{phoneNumber}
+		,#{residentRegistrationNumber}
+		,#{address}
+		,#{birthDate}
+		,#{emergencyPhoneNumber}
+		)
+	</insert>
+	<select id="selectStudentRank" resultType="egovMap">
+		WITH ranked_scores AS (
+    SELECT
+        ssi.scores_id
+        ,ssi.score_year
+        ,ssi.student_id
+        ,ssi.semester
+        ,ssi.scores
+        ,ssi.subject_id
+        ,ss.subject_name
+        ,CASE
+            WHEN ssi.score_divion = 'M' THEN '중간'
+            WHEN ssi.score_divion = 'F' THEN '기말'
+        END AS score_divion,
+        ROW_NUMBER() OVER (PARTITION BY ssi.score_year, ssi.semester, ssi.score_divion, ssi.subject_id ORDER BY ssi.scores DESC) AS rank
+    FROM
+        saa_student_scores_information ssi
+    JOIN
+        saa_student_subject_information ss ON ssi.subject_id = ss.subject_id
+    WHERE
+        ss.student_grade = 2
+        AND ssi.score_year = 2024
+        AND ssi.semester = 1
+        AND ssi.score_divion = 'M'
+	)
+	SELECT
+    	rs.scores_id
+    	,rs.score_year
+    	,rs.student_id
+    	,rs.semester
+    	,rs.scores
+    	,rs.subject_id
+    	,rs.subject_name
+    	,rs.score_divion
+    	,rs.RANK
+    	,SUM(rs.scores) OVER (PARTITION BY rs.student_id, rs.score_year, rs.semester, rs.score_divion) AS total_score
+    	,ROUND(AVG(rs.scores) OVER (PARTITION BY rs.student_id, rs.score_year, rs.semester, rs.score_divion), 1) AS average
+	FROM
+    	ranked_scores rs, saa_student_register ssr
+	WHERE
+		rs.student_id = ssr.student_id
+	AND
+		rs.student_id = 202410160003
+	ORDER BY
+    	rs.rank ASC;
+
+	</select>
+</mapper>
