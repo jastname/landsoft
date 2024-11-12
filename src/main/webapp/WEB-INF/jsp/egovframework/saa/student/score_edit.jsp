@@ -124,13 +124,13 @@
             <tr>
                 <th>학기</th>
                 <td>
-                    <label><input type="radio" name="semester" value="1" <c:if test="${scoreSemester == 1}">checked="checked"</c:if> /> 1학기</label>
-                    <label><input type="radio" name="semester" value="2" <c:if test="${scoreSemester == 2}">checked="checked"</c:if> /> 2학기</label>
+                    <label><input type="radio" name="semester" value="1" <c:if test="${param.semester == 1}">checked="checked"</c:if> /> 1학기</label>
+                    <label><input type="radio" name="semester" value="2" <c:if test="${param.semester == 2}">checked="checked"</c:if> /> 2학기</label>
                 </td>
             </tr>
             <tr>
                 <th>시험 년도</th>
-                <td><input type="text" name="score_year" value="${scoreYear}"></td>
+                <td><input type="text" name="score_year" value="${param.scoreYear}"></td>
             </tr>
             <tr>
                 <th>구분</th>

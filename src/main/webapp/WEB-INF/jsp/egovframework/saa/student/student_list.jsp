@@ -102,6 +102,13 @@
         document.body.appendChild(form);
         form.submit();
     }
+    function openUploadPopup() {
+        window.open(
+            'upload_show.do',
+            '파일 업로드',
+            'width=600,height=400,scrollbars=yes,resizable=yes'
+        );
+    }
 </script>
 </head>
 <body>
@@ -109,11 +116,8 @@
         <h3>메뉴</h3>
         <a href="student_list.do">학생 목록</a>
         <a href="student_input.do">학생 등록</a>
-        <a href="student_input.do">학생 성적 순위</a>
-        <a href="upload_show.do">파일 업로드</a>
-<!--         <a href="department_list.do">학과 목록</a>
-        <a href="grade_list.do">학년별 보기</a>
-        <a href="class_list.do">반 목록</a> -->
+        <a href="student_list_rank.do">학생 성적 순위</a>
+        <a href="javascript:openUploadPopup()">파일 업로드</a>
     </div>
     <div class="content">
         <div class="content-inner">
@@ -167,7 +171,7 @@
                 </div>
                 <div class="bt">
                     <a href="student_input.do">등록</a>
-                    <a href="upload_show.do">업로드</a>
+                    <a href="javascript:openUploadPopup()">업로드</a>
                 </div>
             </div>
         </div>

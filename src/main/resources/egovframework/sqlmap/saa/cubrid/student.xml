@@ -25,10 +25,12 @@
 		student_id
 		,student_name
 		,CASE
-		WHEN state = 'A' THEN '재학'
+		WHEN state = 'A' THEN
+		'재학'
 		WHEN state = 'B' THEN '전학'
 		WHEN state = 'C' THEN '자퇴'
-		WHEN state = 'D' THEN '유급' END AS state
+		WHEN state =
+		'D' THEN '유급' END AS state
 		,entrance
 		,graduation
 		,leave_year
@@ -76,17 +78,20 @@
 		, student_grade
 		,student_department
 		, student_class
-		, student_number
+		,
+		student_number
 		)
 		VALUES (
 		#{studentId}
 		, #{studentName}
 		, #{state}
-		, #{entrance}
+		,
+		#{entrance}
 		, #{graduation}
 		, #{leaveYear}
 		, #{expelledYear}
-		, #{studentSex}
+		,
+		#{studentSex}
 		, #{studentGrade}
 		, #{studentDepartment}
 		, #{studentClass}
@@ -108,33 +113,35 @@
 
 	<select id="selectStudentScore" resultType="egovMap">
 		SELECT
-			ssi.scores_id
-			, ssi.score_year
-			, ssi.student_id
-			, ssi.semester
-			, ssi.scores
-			, ssi.subject_id
-			, CASE
-				WHEN ssi.score_divion = 'M' THEN '중간'
-				WHEN ssi.score_divion = 'F' THEN '기말'
-				END AS score_divion
-			, ROUND(SUM(ssi.scores) OVER (PARTITION BY ssi.student_id, ssi.score_year, ssi.semester, ssi.score_divion), 1) AS total_score
-			, ROUND(AVG(ssi.scores) OVER (PARTITION BY ssi.student_id, ssi.score_year, ssi.semester, ssi.score_divion), 1) AS average
+		ssi.scores_id
+		, ssi.score_year
+		, ssi.student_id
+		, ssi.semester
+		, ssi.scores
+		, ssi.subject_id
+		, CASE
+		WHEN ssi.score_divion = 'M' THEN '중간'
+		WHEN ssi.score_divion = 'F' THEN '기말'
+		END AS score_divion
+		, ROUND(SUM(ssi.scores) OVER (PARTITION BY ssi.student_id,
+		ssi.score_year, ssi.semester, ssi.score_divion), 1) AS total_score
+		, ROUND(AVG(ssi.scores) OVER (PARTITION BY ssi.student_id,
+		ssi.score_year, ssi.semester, ssi.score_divion), 1) AS average
 		FROM
-			saa_student_scores_information ssi
+		saa_student_scores_information ssi
 		JOIN
-			saa_student_subject_information ss
+		saa_student_subject_information ss
 		ON
-			ssi.subject_id = ss.subject_id
+		ssi.subject_id = ss.subject_id
 		WHERE
-			ssi.student_id = #{studentId}
+		ssi.student_id = #{studentId}
 		AND
-			ss.student_grade = #{studentGrade}
+		ss.student_grade = #{studentGrade}
 		ORDER BY
-			ssi.student_id
-			, ssi.score_year
-			, ssi.semester
-			, score_divion DESC;
+		ssi.student_id
+		, ssi.score_year
+		, ssi.semester
+		, score_divion DESC;
 
 	</select>
 
@@ -143,12 +150,16 @@
 		UPDATE
 		saa_student_information
 		SET
-		student_name = #{studentName}
+		student_name =
+		#{studentName}
 		, phone_number = #{phoneNumber}
-		, resident_registration_number = #{residentRegistrationNumber}
-		, address = #{address}
+		,
+		resident_registration_number = #{residentRegistrationNumber}
+		, address
+		= #{address}
 		, birth_date = #{birthDate}
-		, emergency_phone_number = #{emergencyPhoneNumber}
+		, emergency_phone_number =
+		#{emergencyPhoneNumber}
 		WHERE
 		student_id = #{studentId};
 		UPDATE
@@ -156,12 +167,14 @@
 		SET
 		student_name = #{studentName}
 		WHERE
-		student_id = #{studentId};
+		student_id =
+		#{studentId};
 	</update>
 	<delete id="deleteStudent">
 		delete
 		from
-		saa_student_register WHERE student_id = #{studentId};
+		saa_student_register WHERE student_id =
+		#{studentId};
 	</delete>
 	<select id="selectStudentSubject" resultType="egovMap">
 		SELECT
@@ -198,14 +211,14 @@
 
 
 	<select id="countScore" resultType="int">
-		SELECT COUNT(*) FROM
+		SELECT MAX(scores_id) FROM
 		saa_student_scores_information;
 	</select>
 
 	<update id="updateScore">
 		UPDATE saa_student_scores_information
 		SET scores =
-		#{score}
+		#{score} ,score_year = #{scoreYear}
 		WHERE scores_id = #{scoreId};
 	</update>
 
@@ -217,7 +230,8 @@
 		,a.semester
 		,a.scores
 		,CASE
-		WHEN a.score_divion = 'M' THEN '중간'
+		WHEN a.score_divion
+		= 'M' THEN '중간'
 		WHEN a.score_divion = 'F' THEN '기말'
 		END as score_divion
 		,a.subject_id
@@ -226,9 +240,11 @@
 		,saa_student_subject_information b
 		WHERE
 		a.subject_id = b.subject_id
-		AND a.student_id = #{studentId}
+		AND
+		a.student_id = #{studentId}
 		AND b.student_grade =#{studentGrade}
-		AND a.semester = #{semester}
+		AND
+		a.semester = #{semester}
 		AND a.score_divion =#{scoreDivion}
 		ORDER BY
 		a.semester, a.subject_id, score_divion DESC;
@@ -256,49 +272,64 @@
 	</insert>
 	<select id="selectStudentRank" resultType="egovMap">
 		WITH ranked_scores AS (
-    SELECT
-        ssi.scores_id
-        ,ssi.score_year
-        ,ssi.student_id
-        ,ssi.semester
-        ,ssi.scores
-        ,ssi.subject_id
-        ,ss.subject_name
-        ,CASE
-            WHEN ssi.score_divion = 'M' THEN '중간'
-            WHEN ssi.score_divion = 'F' THEN '기말'
-        END AS score_divion,
-        ROW_NUMBER() OVER (PARTITION BY ssi.score_year, ssi.semester, ssi.score_divion, ssi.subject_id ORDER BY ssi.scores DESC) AS rank
-    FROM
-        saa_student_scores_information ssi
-    JOIN
-        saa_student_subject_information ss ON ssi.subject_id = ss.subject_id
-    WHERE
-        ss.student_grade = 2
-        AND ssi.score_year = 2024
-        AND ssi.semester = 1
-        AND ssi.score_divion = 'M'
-	)
-	SELECT
-    	rs.scores_id
-    	,rs.score_year
-    	,rs.student_id
-    	,rs.semester
-    	,rs.scores
-    	,rs.subject_id
-    	,rs.subject_name
-    	,rs.score_divion
-    	,rs.RANK
-    	,SUM(rs.scores) OVER (PARTITION BY rs.student_id, rs.score_year, rs.semester, rs.score_divion) AS total_score
-    	,ROUND(AVG(rs.scores) OVER (PARTITION BY rs.student_id, rs.score_year, rs.semester, rs.score_divion), 1) AS average
-	FROM
-    	ranked_scores rs, saa_student_register ssr
-	WHERE
-		rs.student_id = ssr.student_id
-	AND
-		rs.student_id = 202410160003
-	ORDER BY
-    	rs.rank ASC;
+			SELECT
+				ssi.scores_id
+				, ssi.score_year
+				, ssi.student_id
+				, ssi.semester
+				, ssi.scores
+				, ssi.subject_id
+				, ss.subject_name
+				, CASE
+					WHEN ssi.score_divion = 'M' THEN '중간'
+					WHEN ssi.score_divion = 'F' THEN '기말'
+					END AS score_divion
+				, ROW_NUMBER() OVER (PARTITION BY ssi.semester, ssi.score_divion,ssi.subject_id ORDER BY ssi.scores DESC) AS rank
+				, COUNT(*) OVER (PARTITION BY ssi.semester, ssi.score_divion,ssi.subject_id) AS total_students
+			FROM
+				saa_student_scores_information ssi
+			JOIN
+				saa_student_subject_information ss ON ssi.subject_id = ss.subject_id
+			WHERE
+				ss.student_grade = #{grade}
+				AND ssi.semester = #{semester}
+				AND ssi.score_divion = #{scoreDivion}
+			)
+			SELECT
+			rs.student_id
+			, ssr.student_name
+			, rs.semester
+			, rs.scores
+			, rs.subject_name
+			, rs.score_divion
+			, rs.rank
+			, CASE
+				WHEN rs.rank &lt;= rs.total_students * 0.04 THEN 1
+				WHEN rs.rank &lt;= rs.total_students * 0.11 THEN 2
+				WHEN rs.rank &lt;= rs.total_students * 0.23 THEN 3
+				WHEN rs.rank &lt;= rs.total_students * 0.40 THEN 4
+				WHEN rs.rank &lt;= rs.total_students * 0.60 THEN 5
+				WHEN rs.rank &lt;= rs.total_students * 0.77 THEN 6
+				WHEN rs.rank &lt;= rs.total_students * 0.89 THEN 7
+				WHEN rs.rank &lt;= rs.total_students * 0.96 THEN 8
+				ELSE 9
+				END AS rating
+			, CASE
+       			WHEN rs.scores >= 90 THEN 'A'
+        		WHEN rs.scores >= 80 THEN 'B'
+       			WHEN rs.scores >= 70 THEN 'C'
+        		WHEN rs.scores >= 60 THEN 'D'
+        		ELSE 'F'
+      			END AS achievement
+			FROM
+				ranked_scores rs
+			JOIN
+				saa_student_register ssr ON rs.student_id = ssr.student_id
+			WHERE
+				rs.subject_id = #{subject}
+			ORDER BY
+				rs.rank ASC;
 
 	</select>
+
 </mapper>

@@ -95,9 +95,6 @@
 
         </form>
         <button onclick="openDownloadPopup()">파일 다운로드 페이지 열기</button><br><br>
-        <a href="javascript:history.back()" class="button">돌아가기</a>
-
-
     </div>
 </body>
 </html>

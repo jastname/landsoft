@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,7 +26,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import egovframework.saa.module.student.service.StudentService;
@@ -77,14 +80,75 @@ public class StudentController {
 			model.addAttribute("paginationInfo", paginationInfo);
 			model.addAttribute("paramMap", egovMap);
 			LOGGER.info("end ");
-			LOGGER.info("학생 등록 성공");
-		} catch (Exception e) {
-			LOGGER.error("학생 등록 실패: " + e.getMessage(), e);
+			LOGGER.info("학생 조회 성공");
+		}catch (RuntimeException e) {
+			LOGGER.error("실행중학생 조회 실패: " + e.getMessage(), e);
 			// 오류 발생 시 사용자에게 알리기 위해 모델에 오류 메시지 추가
-			model.addAttribute("errorMessage", "학생 등록 중 오류가 발생했습니다.");
+			model.addAttribute("errorMessage", "실행중 학생 조회 중 오류가 발생했습니다.");
+			return "saa/student/student_input"; // 오류가 발생한 경우 입력 페이지로 돌아가기
+		}catch (Exception e) {
+			LOGGER.error("학생 조회 실패: " + e.getMessage(), e);
+			// 오류 발생 시 사용자에게 알리기 위해 모델에 오류 메시지 추가
+			model.addAttribute("errorMessage", "학생 조회 중 오류가 발생했습니다.");
 			return "saa/student/student_input"; // 오류가 발생한 경우 입력 페이지로 돌아가기
 		}
 		return "saa/student/student_list";
+	}
+	@RequestMapping(value = "/student/student_list_rank.do")
+	public String selectStudentListRank(ModelMap model, HttpServletRequest request)
+			throws DataAccessException, RuntimeException, IOException, SQLException {
+		LOGGER.info("학생 목록");
+
+		String page = request.getParameter("page") == null ? "1" : request.getParameter("page");
+		String schFld = request.getParameter("schFld") == null ? "" : request.getParameter("schFld");
+		String schStr = request.getParameter("schStr") == null ? "" : request.getParameter("schStr");
+		String semester = request.getParameter("semester") == null ? "1" : request.getParameter("semester");
+		String examType = request.getParameter("examType") == null ? "M" : request.getParameter("examType");
+		String subject = request.getParameter("subject") == null ? "SUB001" : request.getParameter("subject");
+		String grade = request.getParameter("grade") == null ? "1" : request.getParameter("grade");
+
+		PaginationInfo paginationInfo = new PaginationInfo();
+		paginationInfo.setCurrentPageNo(Integer.parseInt(page));
+		paginationInfo.setRecordCountPerPage(10);
+		paginationInfo.setPageSize(10);
+		EgovMap egovMap = new EgovMap();
+		egovMap.put("schFld", schFld);
+		egovMap.put("semester", semester);
+		egovMap.put("scoreDivion", examType);
+		egovMap.put("schStr", schStr);
+		egovMap.put("subject", subject);
+		egovMap.put("grade", grade);
+		egovMap.put("firstIndex", paginationInfo.getFirstRecordIndex());
+		egovMap.put("lastIndex", paginationInfo.getLastRecordIndex());
+		LOGGER.info("egovMap ::: " + egovMap);
+
+
+		EgovMap subjectMap = new EgovMap();
+		subjectMap.put("studentGrade", grade);
+		// 학생 목록 가져오기
+
+		try {
+			List<EgovMap> studentList = studentService.selectStudentRank(egovMap);
+			List<EgovMap> studentSubject = studentService.selectStudentSubject(subjectMap);
+			model.addAttribute("studentList", studentList);
+			// JSP 데이타 전달
+			model.addAttribute("paginationInfo", paginationInfo);
+			model.addAttribute("paramMap", egovMap);
+			model.addAttribute("studentSubject", studentSubject);
+			LOGGER.info("end ");
+			LOGGER.info("학생 순위 조회 성공");
+		} catch (RuntimeException e) {
+			LOGGER.error("실행중 학생 조회 실패: " + e.getMessage(), e);
+		// 오류 발생 시 사용자에게 알리기 위해 모델에 오류 메시지 추가
+			model.addAttribute("errorMessage", "실행중 학생 순위 조회 중 오류가 발생했습니다.");
+		return "saa/student/student_list_rank";
+		}catch (Exception e) {
+			LOGGER.error("학생 등록 실패: " + e.getMessage(), e);
+			// 오류 발생 시 사용자에게 알리기 위해 모델에 오류 메시지 추가
+			model.addAttribute("errorMessage", "학생 순위 조회 중 오류가 발생했습니다.");
+			return "saa/student/student_list_rank";
+		}
+		return "saa/student/student_list_rank";
 	}
 
 	@RequestMapping(value = "/student/student_input.do")
@@ -459,8 +523,8 @@ public class StudentController {
 		LOGGER.info("Student ID: " + studentId);
 		LOGGER.info("Semester: " + semester);
 		LOGGER.info("grade: " + grade);
-		LOGGER.info("Score Year: " + scoreYear);
-		LOGGER.info("Score Division: " + scoreDivion);
+		LOGGER.info("scoreYear: " + scoreYear);
+		LOGGER.info("scoreDivision: " + scoreDivion);
 		EgovMap subjectMap = new EgovMap(); // 과목 조회
 		subjectMap.put("studentGrade", grade);
 		subjectMap.put("studentId", studentId);
@@ -644,4 +708,24 @@ public class StudentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    @RequestMapping(value = "/student/getSubjectsByGrade.do", method = RequestMethod.GET)
+    @ResponseBody
+    public List<EgovMap> getSubjectsByGrade(@RequestParam("grade") String grade) {
+        LOGGER.info("학년별 과목 목록 조회: " + grade);
+
+        EgovMap subjectMap = new EgovMap();
+        subjectMap.put("studentGrade", grade);
+
+        try {
+            // 학년에 따른 과목 목록을 가져오기
+            List<EgovMap> subjects = studentService.selectStudentSubject(subjectMap);
+            LOGGER.info("과목 목록 조회 성공: " + subjects);
+            return subjects; // JSON 형식으로 반환됨
+        } catch (Exception e) {
+            LOGGER.error("과목 목록 조회 실패: " + e.getMessage(), e);
+            return new ArrayList<>(); // 오류 시 빈 목록 반환
+        }
+    }
+
 }
